@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Konyvtar_katalogus.Repository
 {
-    public interface IBookRepository :IDisposable
+    public interface IBookRepository 
     {
     /*Alapvető CRUD Műveletek*/
         IEnumerable<Book> GetBooks();
@@ -20,12 +20,10 @@ namespace Konyvtar_katalogus.Repository
         /*típus? => nem kötelező értéket megadni.*/
        /* IEnumerable<Book> OrderBooks(List<Book> books, string? title, string? author, string? isbn);*/
         
-        IEnumerable<Book> SearchAndOrderBooks(
+        List<Book> SearchAndOrderBooks(
     string? title,
     string? author,
-    string? isbn,
-    string? orderBy
-);
+    string? isbn);
 
 
 

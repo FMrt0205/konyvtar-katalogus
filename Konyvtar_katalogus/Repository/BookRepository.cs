@@ -6,19 +6,22 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using static Konyvtar_katalogus.Service.ScoreCalculated;
+using Konyvtar_katalogus.Service;
 
 namespace Konyvtar_katalogus.Repository
 {
     public  class BookRepository : IBookRepository, IDisposable
     {
         private LibraryDbContext context;
+        private ScoreCalculated score;
 
         public BookRepository(LibraryDbContext _context)
         {
             this.context = _context;
 
         }
-        public IEnumerable<Models.Book> GetAllBooks()
+        public IEnumerable<Models.Book> GetBooks()
         {
             return context.Books.ToList();
         }
@@ -65,10 +68,34 @@ namespace Konyvtar_katalogus.Repository
             GC.SuppressFinalize(this);
         }
 
-        public IEnumerable<Book> SearchAndOrderBooks(string? title, string? authir, string? isbn) {
-            return context.Books.ToList(); }
+        public List<Book> SearchAndOrderBooks(string? title, string? author, string? isbn) { 
+
+
+            IQueryable<Book> query = context.Books
+    .Where(b => (title == null || b.title.Contains(title))
+             && (author == null || b.author.Contains(author))
+             && (isbn == null || b.isbn.Contains(isbn)));
+
+            var filteredBooks = context.Books
+    .Where(b => (title == null || b.title.Contains(title))
+             && (author == null || b.author.Contains(author))
+             && (isbn == null || b.isbn.Contains(isbn)))
+    .AsEnumerable() // most már LINQ to Objects
+    .Select(b => new
+    {
+        Book = b,
+        Score = score.scoreCalculateScore(b, title, author, isbn)
+    })
+    .OrderByDescending(x => x.Score)
+    .Select(x => x.Book)
+    .ToList();
+            
+        return filteredBooks;
+
+
+        }
         }
 
 
     }
-}
+
