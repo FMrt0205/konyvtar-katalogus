@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "Konyvtar_katalogus": {
+      "commandName": "Project",
+      "workingDirectory": "$(ProjectDir)",
+      "dotnetRunMessages": true
+    }
+  }
+}

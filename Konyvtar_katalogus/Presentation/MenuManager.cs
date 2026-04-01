@@ -8,13 +8,23 @@ namespace Konyvtar_katalogus.Presentation
         private readonly ICopyService _copyService;
         private readonly IReaderService _readerService;
         private readonly ILoanService _loanService;
+        private readonly IFineService _fineService;
+        private readonly IStatisticsService _statisticsService;
 
-        public MenuManager(IBookService bookService, ICopyService copyService, IReaderService readerService, ILoanService loanService)
+        public MenuManager(
+            IBookService bookService,
+            ICopyService copyService,
+            IReaderService readerService,
+            ILoanService loanService,
+            IFineService fineService,
+            IStatisticsService statisticsService)
         {
             _bookService = bookService;
             _copyService = copyService;
             _readerService = readerService;
             _loanService = loanService;
+            _fineService = fineService;
+            _statisticsService = statisticsService;
         }
 
         public void Run()
@@ -29,6 +39,7 @@ namespace Konyvtar_katalogus.Presentation
                 Console.WriteLine("2. Példányok kezelése");
                 Console.WriteLine("3. Olvasók kezelése");
                 Console.WriteLine("4. Kölcsönzések kezelése");
+                Console.WriteLine("5. Késedelmi díjak");
                 Console.WriteLine("0. Kilépés");
                 Console.Write("\nVálassz: ");
 
@@ -47,6 +58,9 @@ namespace Konyvtar_katalogus.Presentation
                         break;
                     case "4":
                         ManageLoans();
+                        break;
+                    case "5":
+                        ManageFines();
                         break;
                     case "0":
                         running = false;
@@ -69,6 +83,8 @@ namespace Konyvtar_katalogus.Presentation
                 Console.WriteLine("2. Könyvek listázása");
                 Console.WriteLine("3. Könyv törlése");
                 Console.WriteLine("4. Könyv keresése");
+                Console.WriteLine("5. Tömeges import fájlból (TPL)");
+                Console.WriteLine("6. Statisztikák generálása háttérben (TPL)");
                 Console.WriteLine("0. Vissza");
                 Console.Write("\nVálassz: ");
 
@@ -87,6 +103,12 @@ namespace Konyvtar_katalogus.Presentation
                         break;
                     case "4":
                         SearchBooks();
+                        break;
+                    case "5":
+                        ImportBooks();
+                        break;
+                    case "6":
+                        ShowStatistics();
                         break;
                     case "0":
                         back = true;
@@ -168,7 +190,11 @@ namespace Konyvtar_katalogus.Presentation
             Console.Write("Keresési kifejezés (cím/szerző/ISBN): ");
             var searchTerm = Console.ReadLine();
 
-            var results = _bookService.SearchBooks(searchTerm);
+            Console.Write("Rendezés (1 = relevancia, 2 = találatszám): ");
+            var sortChoice = Console.ReadLine();
+            var sortByMatchCount = sortChoice == "2";
+
+            var results = _bookService.SearchBooks(searchTerm, sortByMatchCount);
 
             if (!results.Any())
             {
@@ -328,7 +354,10 @@ namespace Konyvtar_katalogus.Presentation
             Console.Write("Név: ");
             var name = Console.ReadLine();
 
-            if (_readerService.AddReader(name))
+            Console.Write("Email (opcionális): ");
+            var email = Console.ReadLine();
+
+            if (_readerService.AddReader(name, email))
             {
                 Console.WriteLine("Olvasó sikeresen hozzáadva!");
             }
@@ -353,7 +382,8 @@ namespace Konyvtar_katalogus.Presentation
             foreach (var reader in readers)
             {
                 var loanCount = reader.Loans?.Count(l => l.returnDate == DateTime.MinValue) ?? 0;
-                Console.WriteLine($"[{reader.readerid}] {reader.name} | Aktív kölcsönzések: {loanCount}");
+                var email = string.IsNullOrWhiteSpace(reader.email) ? "-" : reader.email;
+                Console.WriteLine($"[{reader.readerid}] {reader.name} | Email: {email} | Aktív kölcsönzések: {loanCount}");
             }
         }
 
@@ -389,6 +419,8 @@ namespace Konyvtar_katalogus.Presentation
                 Console.WriteLine("2. Visszahozatal");
                 Console.WriteLine("3. Aktív kölcsönzések listája");
                 Console.WriteLine("4. Összes kölcsönzés listája");
+                Console.WriteLine("5. Késedelmes értesítések sorba állítása");
+                Console.WriteLine("6. Értesítési sor kiküldése (log)");
                 Console.WriteLine("0. Vissza");
                 Console.Write("\nVálassz: ");
 
@@ -407,6 +439,12 @@ namespace Konyvtar_katalogus.Presentation
                         break;
                     case "4":
                         ListAllLoans();
+                        break;
+                    case "5":
+                        QueueOverdueNotifications();
+                        break;
+                    case "6":
+                        SendQueuedNotifications();
                         break;
                     case "0":
                         back = true;
@@ -499,7 +537,8 @@ namespace Konyvtar_katalogus.Presentation
             foreach (var loan in activeLoans)
             {
                 var days = (DateTime.Now - loan.loanDate).Days;
-                Console.WriteLine($"[{loan.loanid}] {loan.Reader.name} - {loan.Copy.Book.title} ({loan.Copy.InventoryNumber}) | {loan.loanDate:yyyy-MM-dd} ({days} napja)");
+                var overdue = DateTime.Now > loan.dueDate ? " | KÉSEDELMES" : string.Empty;
+                Console.WriteLine($"[{loan.loanid}] {loan.Reader.name} - {loan.Copy.Book.title} ({loan.Copy.InventoryNumber}) | {loan.loanDate:yyyy-MM-dd} ({days} napja) | Határidő: {loan.dueDate:yyyy-MM-dd}{overdue}");
             }
         }
 
@@ -520,6 +559,108 @@ namespace Konyvtar_katalogus.Presentation
                 var status = loan.returnDate == DateTime.MinValue ? "Aktív" : $"Visszahozva: {loan.returnDate:yyyy-MM-dd}";
                 Console.WriteLine($"[{loan.loanid}] {loan.Reader.name} - {loan.Copy.Book.title} | Kikölcsönözve: {loan.loanDate:yyyy-MM-dd} | {status}");
             }
+        }
+
+        private void ImportBooks()
+        {
+            Console.WriteLine("\n--- TÖMEGES IMPORT ---");
+            Console.Write("Fájl útvonal (formátum: Cím;Szerző;ISBN soronként): ");
+            var path = Console.ReadLine();
+
+            var result = _bookService.ImportBooksFromFileAsync(path ?? string.Empty).GetAwaiter().GetResult();
+            Console.WriteLine($"Import kész. Sikeres: {result.importedCount}, kihagyott: {result.skippedCount}");
+        }
+
+        private void ShowStatistics()
+        {
+            Console.WriteLine("\n--- STATISZTIKÁK (HÁTTÉRBEN) ---");
+            var stats = _statisticsService.GenerateStatisticsAsync().GetAwaiter().GetResult();
+
+            Console.WriteLine($"Könyvek száma: {stats.TotalBooks}");
+            Console.WriteLine($"Példányok száma: {stats.TotalCopies}");
+            Console.WriteLine($"Elérhető példányok: {stats.AvailableCopies}");
+            Console.WriteLine($"Olvasók száma: {stats.TotalReaders}");
+            Console.WriteLine($"Aktív kölcsönzések: {stats.ActiveLoans}");
+            Console.WriteLine($"Késedelmes kölcsönzések: {stats.OverdueLoans}");
+            Console.WriteLine($"Fizetetlen díjak: {stats.UnpaidFines}");
+        }
+
+        private void QueueOverdueNotifications()
+        {
+            var count = _loanService.QueueOverdueNotifications();
+            Console.WriteLine($"Sorba állított értesítések: {count}");
+        }
+
+        private void SendQueuedNotifications()
+        {
+            var sent = _loanService.SendQueuedNotifications();
+            Console.WriteLine($"Kiküldött értesítések: {sent}");
+        }
+
+        private void ManageFines()
+        {
+            bool back = false;
+            while (!back)
+            {
+                Console.WriteLine("\n--- KÉSEDELMI DÍJAK ---");
+                Console.WriteLine("1. Fizetetlen díjak listája");
+                Console.WriteLine("2. Összes díj listája");
+                Console.WriteLine("3. Díj befizetése");
+                Console.WriteLine("0. Vissza");
+                Console.Write("\nVálassz: ");
+
+                var choice = Console.ReadLine();
+                switch (choice)
+                {
+                    case "1":
+                        ListFines(unpaidOnly: true);
+                        break;
+                    case "2":
+                        ListFines(unpaidOnly: false);
+                        break;
+                    case "3":
+                        PayFine();
+                        break;
+                    case "0":
+                        back = true;
+                        break;
+                    default:
+                        Console.WriteLine("Érvénytelen választás!");
+                        break;
+                }
+            }
+        }
+
+        private void ListFines(bool unpaidOnly)
+        {
+            var fines = unpaidOnly ? _fineService.GetUnpaidFines() : _fineService.GetAllFines();
+            if (!fines.Any())
+            {
+                Console.WriteLine("Nincsenek megjeleníthető díjak.");
+                return;
+            }
+
+            foreach (var fine in fines)
+            {
+                var status = fine.isPaid ? $"Fizetve: {fine.paidAt:yyyy-MM-dd HH:mm}" : "Fizetetlen";
+                Console.WriteLine($"[{fine.fineid}] {fine.Loan.Reader.name} - {fine.Loan.Copy.Book.title} | Összeg: {fine.amount} Ft | {status}");
+            }
+        }
+
+        private void PayFine()
+        {
+            ListFines(unpaidOnly: true);
+
+            Console.Write("\nBefizetendő díj ID-ja: ");
+            if (!int.TryParse(Console.ReadLine(), out int fineId))
+            {
+                Console.WriteLine("Érvénytelen ID!");
+                return;
+            }
+
+            Console.WriteLine(_fineService.PayFine(fineId)
+                ? "Díj sikeresen befizetve."
+                : "A díj nem található vagy már rendezett.");
         }
     }
 }

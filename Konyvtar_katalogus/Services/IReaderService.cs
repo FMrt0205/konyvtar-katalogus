@@ -4,7 +4,7 @@ namespace Konyvtar_katalogus.Services
 {
     public interface IReaderService
     {
-        bool AddReader(string name);
+        bool AddReader(string name, string? email);
         IEnumerable<Reader> GetAllReaders();
         bool DeleteReader(int readerId);
     }

@@ -7,7 +7,7 @@ namespace Konyvtar_katalogus.Data.Repositories
         void Add(Book book);
         Book? GetById(int id);
         IEnumerable<Book> GetAll();
-        IEnumerable<Book> Search(string searchTerm);
+        IEnumerable<Book> Search(string searchTerm, bool sortByMatchCount = false);
         void Delete(Book book);
         void SaveChanges();
     }

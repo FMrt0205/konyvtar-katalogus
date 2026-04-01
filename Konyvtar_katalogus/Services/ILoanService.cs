@@ -8,5 +8,7 @@ namespace Konyvtar_katalogus.Services
         bool ReturnLoan(int loanId);
         IEnumerable<Loan> GetActiveLoans();
         IEnumerable<Loan> GetAllLoans();
+        int QueueOverdueNotifications();
+        int SendQueuedNotifications();
     }
 }

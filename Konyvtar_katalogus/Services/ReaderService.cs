@@ -12,12 +12,16 @@ namespace Konyvtar_katalogus.Services
             _readerRepository = readerRepository;
         }
 
-        public bool AddReader(string name)
+        public bool AddReader(string name, string? email)
         {
             if (string.IsNullOrWhiteSpace(name))
                 return false;
 
-            var reader = new Reader { name = name };
+            var reader = new Reader
+            {
+                name = name,
+                email = string.IsNullOrWhiteSpace(email) ? null : email.Trim()
+            };
             _readerRepository.Add(reader);
             _readerRepository.SaveChanges();
             return true;

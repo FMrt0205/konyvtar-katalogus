@@ -11,6 +11,7 @@ namespace Konyvtar_katalogus.Data
         public DbSet<Models.Reader> Readers { get; set; }
         public DbSet<Models.Loan> Loans { get; set; }
         public DbSet<Models.Fine> Fines { get; set; }
+        public DbSet<Models.NotificationQueueItem> NotificationQueueItems { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         { if (!optionsBuilder.IsConfigured) 
@@ -22,6 +23,24 @@ namespace Konyvtar_katalogus.Data
         public LibraryDbContext() { }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<Models.Book>()
+                .HasIndex(b => b.isbn)
+                .IsUnique();
+
+            modelBuilder.Entity<Models.Copy>()
+                .HasIndex(c => c.InventoryNumber)
+                .IsUnique();
+
+            modelBuilder.Entity<Models.Fine>()
+                .HasIndex(f => f.LoanId)
+                .IsUnique();
+
+            modelBuilder.Entity<Models.NotificationQueueItem>()
+                .HasOne(n => n.Loan)
+                .WithMany()
+                .HasForeignKey(n => n.LoanId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             base.OnModelCreating(modelBuilder);
         }
     }
