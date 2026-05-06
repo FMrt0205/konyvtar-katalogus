@@ -128,5 +128,19 @@ namespace Konyvtar_katalogus.Services
             _notificationQueueRepository.SaveChanges();
             return pendingItems.Count;
         }
+
+        public bool MarkLoanOverdue(int loanId, int daysEarlier)
+        {
+            if (daysEarlier <= 0)
+                return false;
+
+            var loan = _loanRepository.GetById(loanId);
+            if (loan == null || loan.returnDate != DateTime.MinValue)
+                return false;
+
+            loan.loanDate = DateTime.Now.AddDays(-daysEarlier);
+            _loanRepository.SaveChanges();
+            return true;
+        }
     }
 }

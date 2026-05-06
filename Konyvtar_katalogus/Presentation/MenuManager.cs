@@ -2,15 +2,20 @@ using Konyvtar_katalogus.Services;
 
 namespace Konyvtar_katalogus.Presentation
 {
+    // Ez az osztály kezeli az összes felhasználói menüt és interakciót
     public class MenuManager
     {
-        private readonly IBookService _bookService;
-        private readonly ICopyService _copyService;
-        private readonly IReaderService _readerService;
-        private readonly ILoanService _loanService;
-        private readonly IFineService _fineService;
-        private readonly IStatisticsService _statisticsService;
+        // Privát mezők – ezek tartják a service-eket (üzleti logika réteg)
+        // A "_" előtag jelöli, hogy osztályszintű privát mező
+        private readonly IBookService _bookService;           // könyvek kezelése
+        private readonly ICopyService _copyService;           // példányok kezelése
+        private readonly IReaderService _readerService;       // olvasók kezelése
+        private readonly ILoanService _loanService;           // kölcsönzések kezelése
+        private readonly IFineService _fineService;           // késedelmi díjak kezelése
+        private readonly IStatisticsService _statisticsService; // statisztikák generálása
 
+        // Konstruktor – amikor létrejön a MenuManager, megkapja a szükséges service-eket
+        // Ez az ún. Dependency Injection (DI): kívülről adjuk be a függőségeket
         public MenuManager(
             IBookService bookService,
             ICopyService copyService,
@@ -27,11 +32,13 @@ namespace Konyvtar_katalogus.Presentation
             _statisticsService = statisticsService;
         }
 
+        // A program belépési pontja – ez indítja el a főmenüt
         public void Run()
         {
             Console.WriteLine("=== Könyvtár Katalógus Rendszer ===\n");
 
             bool running = true;
+            // Addig fut a ciklus, amíg a felhasználó ki nem lép (0-t nem nyom)
             while (running)
             {
                 Console.WriteLine("\n--- FŐMENÜ ---");
@@ -43,27 +50,18 @@ namespace Konyvtar_katalogus.Presentation
                 Console.WriteLine("0. Kilépés");
                 Console.Write("\nVálassz: ");
 
-                var choice = Console.ReadLine();
+                var choice = Console.ReadLine(); // beolvassa a felhasználó választását
 
+                // A választás alapján meghívja a megfelelő almenüt
                 switch (choice)
                 {
-                    case "1":
-                        ManageBooks();
-                        break;
-                    case "2":
-                        ManageCopies();
-                        break;
-                    case "3":
-                        ManageReaders();
-                        break;
-                    case "4":
-                        ManageLoans();
-                        break;
-                    case "5":
-                        ManageFines();
-                        break;
+                    case "1": ManageBooks(); break;
+                    case "2": ManageCopies(); break;
+                    case "3": ManageReaders(); break;
+                    case "4": ManageLoans(); break;
+                    case "5": ManageFines(); break;
                     case "0":
-                        running = false;
+                        running = false; // kilép a while ciklusból
                         Console.WriteLine("Viszlát!");
                         break;
                     default:
@@ -73,10 +71,14 @@ namespace Konyvtar_katalogus.Presentation
             }
         }
 
+        // ───────────────────────────────────────────────
+        // KÖNYVEK ALMENÜ
+        // ───────────────────────────────────────────────
+
         private void ManageBooks()
         {
             bool back = false;
-            while (!back)
+            while (!back) // addig fut, amíg a felhasználó vissza nem lép
             {
                 Console.WriteLine("\n--- KÖNYVEK KEZELÉSE ---");
                 Console.WriteLine("1. Új könyv hozzáadása");
@@ -92,34 +94,19 @@ namespace Konyvtar_katalogus.Presentation
 
                 switch (choice)
                 {
-                    case "1":
-                        AddBook();
-                        break;
-                    case "2":
-                        ListBooks();
-                        break;
-                    case "3":
-                        DeleteBook();
-                        break;
-                    case "4":
-                        SearchBooks();
-                        break;
-                    case "5":
-                        ImportBooks();
-                        break;
-                    case "6":
-                        ShowStatistics();
-                        break;
-                    case "0":
-                        back = true;
-                        break;
-                    default:
-                        Console.WriteLine("Érvénytelen választás!");
-                        break;
+                    case "1": AddBook(); break;
+                    case "2": ListBooks(); break;
+                    case "3": DeleteBook(); break;
+                    case "4": SearchBooks(); break;
+                    case "5": ImportBooks(); break;
+                    case "6": ShowStatistics(); break;
+                    case "0": back = true; break; // kilép a while ciklusból → visszatér a főmenübe
+                    default: Console.WriteLine("Érvénytelen választás!"); break;
                 }
             }
         }
 
+        // Új könyv felvitele: bekéri az adatokat, majd átadja a service-nek
         private void AddBook()
         {
             Console.WriteLine("\n--- ÚJ KÖNYV HOZZÁADÁSA ---");
@@ -133,23 +120,21 @@ namespace Konyvtar_katalogus.Presentation
             Console.Write("ISBN (13 karakter): ");
             var isbn = Console.ReadLine();
 
+            // A service végzi az érvényesítést és mentést – visszaad true/false-t
             if (_bookService.AddBook(title, author, isbn))
-            {
                 Console.WriteLine("Könyv sikeresen hozzáadva!");
-            }
             else
-            {
                 Console.WriteLine("Hiba történt! Ellenőrizd a mezőket (ISBN 13 karakter legyen).");
-            }
         }
 
+        // Az összes könyv kilistázása az adatbázisból
         private void ListBooks()
         {
             Console.WriteLine("\n--- KÖNYVEK LISTÁJA ---");
 
             var books = _bookService.GetAllBooks();
 
-            if (!books.Any())
+            if (!books.Any()) // ha üres a lista
             {
                 Console.WriteLine("Nincsenek könyvek az adatbázisban.");
                 return;
@@ -157,33 +142,34 @@ namespace Konyvtar_katalogus.Presentation
 
             foreach (var book in books)
             {
+                // ?. = null-safe hozzáférés: ha Copies null, nem dob hibát
+                // ?? 0 = ha null, akkor 0-t használ
                 var copyCount = book.Copies?.Count ?? 0;
                 Console.WriteLine($"[{book.bookid}] {book.title} - {book.author} (ISBN: {book.isbn}) | Példányok: {copyCount}");
             }
         }
 
+        // Könyv törlése ID alapján
         private void DeleteBook()
         {
             Console.WriteLine("\n--- KÖNYV TÖRLÉSE ---");
-            ListBooks();
+            ListBooks(); // először kilistázza, hogy látszódjanak az ID-k
 
             Console.Write("\nTörlendő könyv ID-ja: ");
+            // int.TryParse: biztonságos szám-parse, ha nem szám, false-t ad vissza
             if (!int.TryParse(Console.ReadLine(), out int bookId))
             {
                 Console.WriteLine("Érvénytelen ID!");
-                return;
+                return; // kilép a metódusból
             }
 
             if (_bookService.DeleteBook(bookId))
-            {
                 Console.WriteLine("Könyv törölve!");
-            }
             else
-            {
                 Console.WriteLine("Hiba! A könyvnek vannak példányai vagy nem található.");
-            }
         }
 
+        // Könyv keresése cím/szerző/ISBN alapján, kétféle rendezéssel
         private void SearchBooks()
         {
             Console.WriteLine("\n--- KÖNYV KERESÉSE ---");
@@ -192,7 +178,7 @@ namespace Konyvtar_katalogus.Presentation
 
             Console.Write("Rendezés (1 = relevancia, 2 = találatszám): ");
             var sortChoice = Console.ReadLine();
-            var sortByMatchCount = sortChoice == "2";
+            var sortByMatchCount = sortChoice == "2"; // bool: true ha "2"-t írt be
 
             var results = _bookService.SearchBooks(searchTerm, sortByMatchCount);
 
@@ -206,10 +192,16 @@ namespace Konyvtar_katalogus.Presentation
             foreach (var book in results)
             {
                 var copyCount = book.Copies?.Count ?? 0;
+                // Lambda szűrés: csak az elérhető (isAvailable == true) példányokat számolja
                 var availableCount = book.Copies?.Count(c => c.isAvailable) ?? 0;
                 Console.WriteLine($"[{book.bookid}] {book.title} - {book.author} (ISBN: {book.isbn}) | Példányok: {copyCount} (Elérhető: {availableCount})");
             }
         }
+
+        // ───────────────────────────────────────────────
+        // PÉLDÁNYOK ALMENÜ
+        // (Egy könyvből több fizikai példány is lehet)
+        // ───────────────────────────────────────────────
 
         private void ManageCopies()
         {
@@ -224,32 +216,22 @@ namespace Konyvtar_katalogus.Presentation
                 Console.Write("\nVálassz: ");
 
                 var choice = Console.ReadLine();
-
                 switch (choice)
                 {
-                    case "1":
-                        AddCopy();
-                        break;
-                    case "2":
-                        ListCopies();
-                        break;
-                    case "3":
-                        DeleteCopy();
-                        break;
-                    case "0":
-                        back = true;
-                        break;
-                    default:
-                        Console.WriteLine("Érvénytelen választás!");
-                        break;
+                    case "1": AddCopy(); break;
+                    case "2": ListCopies(); break;
+                    case "3": DeleteCopy(); break;
+                    case "0": back = true; break;
+                    default: Console.WriteLine("Érvénytelen választás!"); break;
                 }
             }
         }
 
+        // Új fizikai példány hozzáadása egy meglévő könyvhöz
         private void AddCopy()
         {
             Console.WriteLine("\n--- ÚJ PÉLDÁNY HOZZÁADÁSA ---");
-            ListBooks();
+            ListBooks(); // megmutatja a könyveket, hogy tudja melyik ID-t adja meg
 
             Console.Write("\nKönyv ID-ja: ");
             if (!int.TryParse(Console.ReadLine(), out int bookId))
@@ -262,15 +244,12 @@ namespace Konyvtar_katalogus.Presentation
             var inventoryNumber = Console.ReadLine();
 
             if (_copyService.AddCopy(bookId, inventoryNumber))
-            {
                 Console.WriteLine("Példány sikeresen hozzáadva!");
-            }
             else
-            {
                 Console.WriteLine("Hiba történt! A könyv nem található vagy érvénytelen leltári szám.");
-            }
         }
 
+        // Összes példány listázása, státusszal (elérhető / kölcsönözve)
         private void ListCopies()
         {
             Console.WriteLine("\n--- PÉLDÁNYOK LISTÁJA ---");
@@ -285,11 +264,13 @@ namespace Konyvtar_katalogus.Presentation
 
             foreach (var copy in copies)
             {
+                // Ternáris operátor: ha igaz → "Elérhető", ha hamis → "Kölcsönözve"
                 var status = copy.isAvailable ? "Elérhető" : "Kölcsönözve";
                 Console.WriteLine($"[{copy.copyid}] {copy.Book.title} | Leltári szám: {copy.InventoryNumber} | {status}");
             }
         }
 
+        // Példány törlése ID alapján (csak ha nincs aktív kölcsönzés rajta)
         private void DeleteCopy()
         {
             Console.WriteLine("\n--- PÉLDÁNY TÖRLÉSE ---");
@@ -303,14 +284,14 @@ namespace Konyvtar_katalogus.Presentation
             }
 
             if (_copyService.DeleteCopy(copyId))
-            {
                 Console.WriteLine("Példány törölve!");
-            }
             else
-            {
                 Console.WriteLine("Hiba! A példány kölcsönözve van vagy nem található.");
-            }
         }
+
+        // ───────────────────────────────────────────────
+        // OLVASÓK ALMENÜ
+        // ───────────────────────────────────────────────
 
         private void ManageReaders()
         {
@@ -325,28 +306,18 @@ namespace Konyvtar_katalogus.Presentation
                 Console.Write("\nVálassz: ");
 
                 var choice = Console.ReadLine();
-
                 switch (choice)
                 {
-                    case "1":
-                        AddReader();
-                        break;
-                    case "2":
-                        ListReaders();
-                        break;
-                    case "3":
-                        DeleteReader();
-                        break;
-                    case "0":
-                        back = true;
-                        break;
-                    default:
-                        Console.WriteLine("Érvénytelen választás!");
-                        break;
+                    case "1": AddReader(); break;
+                    case "2": ListReaders(); break;
+                    case "3": DeleteReader(); break;
+                    case "0": back = true; break;
+                    default: Console.WriteLine("Érvénytelen választás!"); break;
                 }
             }
         }
 
+        // Új könyvtári olvasó regisztrálása (email opcionális)
         private void AddReader()
         {
             Console.WriteLine("\n--- ÚJ OLVASÓ HOZZÁADÁSA ---");
@@ -358,15 +329,12 @@ namespace Konyvtar_katalogus.Presentation
             var email = Console.ReadLine();
 
             if (_readerService.AddReader(name, email))
-            {
                 Console.WriteLine("Olvasó sikeresen hozzáadva!");
-            }
             else
-            {
                 Console.WriteLine("Hiba! A név megadása kötelező.");
-            }
         }
 
+        // Olvasók listázása az aktív kölcsönzéseik számával együtt
         private void ListReaders()
         {
             Console.WriteLine("\n--- OLVASÓK LISTÁJA ---");
@@ -381,12 +349,16 @@ namespace Konyvtar_katalogus.Presentation
 
             foreach (var reader in readers)
             {
+                // Csak az aktív (még vissza nem hozott) kölcsönzéseket számolja
+                // DateTime.MinValue = "nincs visszahozatal dátuma" = aktív kölcsönzés
                 var loanCount = reader.Loans?.Count(l => l.returnDate == DateTime.MinValue) ?? 0;
+                // Ha üres az email mező, "-" jelenik meg helyette
                 var email = string.IsNullOrWhiteSpace(reader.email) ? "-" : reader.email;
                 Console.WriteLine($"[{reader.readerid}] {reader.name} | Email: {email} | Aktív kölcsönzések: {loanCount}");
             }
         }
 
+        // Olvasó törlése (csak ha nincs aktív kölcsönzése)
         private void DeleteReader()
         {
             Console.WriteLine("\n--- OLVASÓ TÖRLÉSE ---");
@@ -400,14 +372,14 @@ namespace Konyvtar_katalogus.Presentation
             }
 
             if (_readerService.DeleteReader(readerId))
-            {
                 Console.WriteLine("Olvasó törölve!");
-            }
             else
-            {
                 Console.WriteLine("Hiba! Az olvasónak aktív kölcsönzései vannak vagy nem található.");
-            }
         }
+
+        // ───────────────────────────────────────────────
+        // KÖLCSÖNZÉSEK ALMENÜ
+        // ───────────────────────────────────────────────
 
         private void ManageLoans()
         {
@@ -421,41 +393,27 @@ namespace Konyvtar_katalogus.Presentation
                 Console.WriteLine("4. Összes kölcsönzés listája");
                 Console.WriteLine("5. Késedelmes értesítések sorba állítása");
                 Console.WriteLine("6. Értesítési sor kiküldése (log)");
+                Console.WriteLine("7. Kölcsönzés késedelmessé tétele (teszt)");
                 Console.WriteLine("0. Vissza");
                 Console.Write("\nVálassz: ");
 
                 var choice = Console.ReadLine();
-
                 switch (choice)
                 {
-                    case "1":
-                        CreateLoan();
-                        break;
-                    case "2":
-                        ReturnLoan();
-                        break;
-                    case "3":
-                        ListActiveLoans();
-                        break;
-                    case "4":
-                        ListAllLoans();
-                        break;
-                    case "5":
-                        QueueOverdueNotifications();
-                        break;
-                    case "6":
-                        SendQueuedNotifications();
-                        break;
-                    case "0":
-                        back = true;
-                        break;
-                    default:
-                        Console.WriteLine("Érvénytelen választás!");
-                        break;
+                    case "1": CreateLoan(); break;
+                    case "2": ReturnLoan(); break;
+                    case "3": ListActiveLoans(); break;
+                    case "4": ListAllLoans(); break;
+                    case "5": QueueOverdueNotifications(); break;
+                    case "6": SendQueuedNotifications(); break;
+                    case "7": MarkLoanOverdue(); break;
+                    case "0": back = true; break;
+                    default: Console.WriteLine("Érvénytelen választás!"); break;
                 }
             }
         }
 
+        // Új kölcsönzés rögzítése: olvasóhoz rendelünk egy szabad példányt
         private void CreateLoan()
         {
             Console.WriteLine("\n--- ÚJ KÖLCSÖNZÉS ---");
@@ -469,6 +427,7 @@ namespace Konyvtar_katalogus.Presentation
             }
 
             Console.WriteLine("\nElérhető példányok:");
+            // Csak az isAvailable == true példányokat kéri le
             var availableCopies = _copyService.GetAvailableCopies();
 
             if (!availableCopies.Any())
@@ -478,9 +437,7 @@ namespace Konyvtar_katalogus.Presentation
             }
 
             foreach (var copy in availableCopies)
-            {
                 Console.WriteLine($"[{copy.copyid}] {copy.Book.title} - {copy.InventoryNumber}");
-            }
 
             Console.Write("\nPéldány ID-ja: ");
             if (!int.TryParse(Console.ReadLine(), out int copyId))
@@ -490,20 +447,16 @@ namespace Konyvtar_katalogus.Presentation
             }
 
             if (_loanService.CreateLoan(readerId, copyId))
-            {
                 Console.WriteLine("Kölcsönzés sikeresen rögzítve!");
-            }
             else
-            {
                 Console.WriteLine("Hiba! Ellenőrizd az olvasó és példány ID-kat.");
-            }
         }
 
+        // Visszahozatal rögzítése: megadja a kölcsönzés ID-ját
         private void ReturnLoan()
         {
             Console.WriteLine("\n--- VISSZAHOZATAL ---");
-
-            ListActiveLoans();
+            ListActiveLoans(); // segít megtalálni a helyes ID-t
 
             Console.Write("\nKölcsönzés ID-ja: ");
             if (!int.TryParse(Console.ReadLine(), out int loanId))
@@ -513,15 +466,12 @@ namespace Konyvtar_katalogus.Presentation
             }
 
             if (_loanService.ReturnLoan(loanId))
-            {
                 Console.WriteLine("Visszahozatal rögzítve!");
-            }
             else
-            {
                 Console.WriteLine("Hiba! A kölcsönzés nem található vagy már visszahozva.");
-            }
         }
 
+        // Csak a jelenleg aktív (vissza nem hozott) kölcsönzések megjelenítése
         private void ListActiveLoans()
         {
             Console.WriteLine("\n--- AKTÍV KÖLCSÖNZÉSEK ---");
@@ -536,12 +486,15 @@ namespace Konyvtar_katalogus.Presentation
 
             foreach (var loan in activeLoans)
             {
+                // Kiszámolja hány napja van kint a könyv
                 var days = (DateTime.Now - loan.loanDate).Days;
+                // Ha lejárt a határidő, kiírja a figyelmeztetést, különben üres string
                 var overdue = DateTime.Now > loan.dueDate ? " | KÉSEDELMES" : string.Empty;
                 Console.WriteLine($"[{loan.loanid}] {loan.Reader.name} - {loan.Copy.Book.title} ({loan.Copy.InventoryNumber}) | {loan.loanDate:yyyy-MM-dd} ({days} napja) | Határidő: {loan.dueDate:yyyy-MM-dd}{overdue}");
             }
         }
 
+        // Az összes kölcsönzés listázása (aktív + lezárt egyaránt)
         private void ListAllLoans()
         {
             Console.WriteLine("\n--- ÖSSZES KÖLCSÖNZÉS ---");
@@ -556,11 +509,16 @@ namespace Konyvtar_katalogus.Presentation
 
             foreach (var loan in loans)
             {
-                var status = loan.returnDate == DateTime.MinValue ? "Aktív" : $"Visszahozva: {loan.returnDate:yyyy-MM-dd}";
+                // Ha returnDate == DateTime.MinValue → még nem hozták vissza → "Aktív"
+                var status = loan.returnDate == DateTime.MinValue
+                    ? "Aktív"
+                    : $"Visszahozva: {loan.returnDate:yyyy-MM-dd}";
                 Console.WriteLine($"[{loan.loanid}] {loan.Reader.name} - {loan.Copy.Book.title} | Kikölcsönözve: {loan.loanDate:yyyy-MM-dd} | {status}");
             }
         }
 
+        // Fájlból olvas be könyveket soronként (Cím;Szerző;ISBN formátum)
+        // .GetAwaiter().GetResult() = async metódust szinkron módon hív meg
         private void ImportBooks()
         {
             Console.WriteLine("\n--- TÖMEGES IMPORT ---");
@@ -571,6 +529,7 @@ namespace Konyvtar_katalogus.Presentation
             Console.WriteLine($"Import kész. Sikeres: {result.importedCount}, kihagyott: {result.skippedCount}");
         }
 
+        // Statisztikák lekérése és megjelenítése (szintén async → szinkron hívás)
         private void ShowStatistics()
         {
             Console.WriteLine("\n--- STATISZTIKÁK (HÁTTÉRBEN) ---");
@@ -585,17 +544,48 @@ namespace Konyvtar_katalogus.Presentation
             Console.WriteLine($"Fizetetlen díjak: {stats.UnpaidFines}");
         }
 
+        // Késedelmes kölcsönzőknek értesítéseket állít sorba (még nem küldi ki)
         private void QueueOverdueNotifications()
         {
             var count = _loanService.QueueOverdueNotifications();
             Console.WriteLine($"Sorba állított értesítések: {count}");
         }
 
+        // A sorba állított értesítéseket ténylegesen kiküldi (logban jelenik meg)
         private void SendQueuedNotifications()
         {
             var sent = _loanService.SendQueuedNotifications();
             Console.WriteLine($"Kiküldött értesítések: {sent}");
         }
+
+        private void MarkLoanOverdue()
+        {
+            Console.WriteLine("\n--- KÖLCSÖNZÉS KÉSEDELMESSÉ TÉTELE (TESZT) ---");
+            ListActiveLoans();
+
+            Console.Write("\nKölcsönzés ID-ja: ");
+            if (!int.TryParse(Console.ReadLine(), out int loanId))
+            {
+                Console.WriteLine("Érvénytelen ID!");
+                return;
+            }
+
+            Console.Write("Hány nappal legyen korábbra állítva a kölcsönzés dátuma? (pl. 15): ");
+            if (!int.TryParse(Console.ReadLine(), out int daysEarlier) || daysEarlier <= 0)
+            {
+                Console.WriteLine("Érvénytelen napok száma!");
+                return;
+            }
+
+            if (_loanService.MarkLoanOverdue(loanId, daysEarlier))
+                Console.WriteLine("A kölcsönzés dátuma vissza lett állítva.");
+            else
+                Console.WriteLine("Hiba! A kölcsönzés nem található vagy már lezárt.");
+        }
+
+        // ───────────────────────────────────────────────
+        // KÉSEDELMI DÍJAK ALMENÜ
+        // ───────────────────────────────────────────────
 
         private void ManageFines()
         {
@@ -612,28 +602,21 @@ namespace Konyvtar_katalogus.Presentation
                 var choice = Console.ReadLine();
                 switch (choice)
                 {
-                    case "1":
-                        ListFines(unpaidOnly: true);
-                        break;
-                    case "2":
-                        ListFines(unpaidOnly: false);
-                        break;
-                    case "3":
-                        PayFine();
-                        break;
-                    case "0":
-                        back = true;
-                        break;
-                    default:
-                        Console.WriteLine("Érvénytelen választás!");
-                        break;
+                    case "1": ListFines(unpaidOnly: true); break;  // csak fizetetlenek
+                    case "2": ListFines(unpaidOnly: false); break; // összes
+                    case "3": PayFine(); break;
+                    case "0": back = true; break;
+                    default: Console.WriteLine("Érvénytelen választás!"); break;
                 }
             }
         }
 
+        // Díjak listázása – egy metódus két viselkedéssel, paraméter alapján
         private void ListFines(bool unpaidOnly)
         {
+            // Ternáris operátorral dönti el melyik service-metódust hívja
             var fines = unpaidOnly ? _fineService.GetUnpaidFines() : _fineService.GetAllFines();
+
             if (!fines.Any())
             {
                 Console.WriteLine("Nincsenek megjeleníthető díjak.");
@@ -642,14 +625,17 @@ namespace Konyvtar_katalogus.Presentation
 
             foreach (var fine in fines)
             {
-                var status = fine.isPaid ? $"Fizetve: {fine.paidAt:yyyy-MM-dd HH:mm}" : "Fizetetlen";
+                var status = fine.isPaid
+                    ? $"Fizetve: {fine.paidAt:yyyy-MM-dd HH:mm}" // dátum+idő formátum
+                    : "Fizetetlen";
                 Console.WriteLine($"[{fine.fineid}] {fine.Loan.Reader.name} - {fine.Loan.Copy.Book.title} | Összeg: {fine.amount} Ft | {status}");
             }
         }
 
+        // Egy konkrét díj befizetésének rögzítése ID alapján
         private void PayFine()
         {
-            ListFines(unpaidOnly: true);
+            ListFines(unpaidOnly: true); // csak a fizetetleneket mutatja
 
             Console.Write("\nBefizetendő díj ID-ja: ");
             if (!int.TryParse(Console.ReadLine(), out int fineId))
@@ -658,6 +644,7 @@ namespace Konyvtar_katalogus.Presentation
                 return;
             }
 
+            // Tömör ternáris kiírás: sikeres-e a befizetés?
             Console.WriteLine(_fineService.PayFine(fineId)
                 ? "Díj sikeresen befizetve."
                 : "A díj nem található vagy már rendezett.");

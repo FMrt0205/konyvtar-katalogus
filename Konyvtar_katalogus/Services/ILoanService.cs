@@ -10,5 +10,6 @@ namespace Konyvtar_katalogus.Services
         IEnumerable<Loan> GetAllLoans();
         int QueueOverdueNotifications();
         int SendQueuedNotifications();
+        bool MarkLoanOverdue(int loanId, int daysEarlier);
     }
 }
