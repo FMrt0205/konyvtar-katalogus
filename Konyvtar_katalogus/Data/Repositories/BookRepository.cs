@@ -33,6 +33,7 @@ namespace Konyvtar_katalogus.Data.Repositories
 
         public IEnumerable<Book> Search(string searchTerm, bool sortByMatchCount = false)
         {
+            
             var searchLower = searchTerm.ToLower();
             var matches = _context.Books
                 .Include(b => b.Copies)
@@ -40,14 +41,15 @@ namespace Konyvtar_katalogus.Data.Repositories
                             b.author.ToLower().Contains(searchLower) ||
                             b.isbn.Contains(searchTerm))
                 .AsEnumerable()
+                
                 .Select(b => new
                 {
                     Book = b,
                     Score = CalculateRelevanceScore(b, searchLower, searchTerm),
                     MatchCount = CountOccurrences(b.title, searchLower)
                                  + CountOccurrences(b.author, searchLower)
-                                 + CountOccurrences(b.isbn, searchTerm)
                 });
+            
 
             if (sortByMatchCount)
             {
@@ -66,17 +68,18 @@ namespace Konyvtar_katalogus.Data.Repositories
                 .Select(x => x.Book)
                 .ToList();
         }
-
+    
         private static int CalculateRelevanceScore(Book book, string searchLower, string searchOriginal)
         {
             var score = 0;
+            
 
             if (book.isbn.Equals(searchOriginal, StringComparison.OrdinalIgnoreCase))
                 score += 100;
 
             score += CountOccurrences(book.title, searchLower) * 10;
             score += CountOccurrences(book.author, searchLower) * 8;
-            score += CountOccurrences(book.isbn, searchOriginal) * 12;
+            
 
             if (book.title.StartsWith(searchOriginal, StringComparison.OrdinalIgnoreCase))
                 score += 5;
@@ -85,12 +88,11 @@ namespace Konyvtar_katalogus.Data.Repositories
 
             return score;
         }
-
+        
         private static int CountOccurrences(string source, string term)
         {
             if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(term))
                 return 0;
-
             var count = 0;
             var index = 0;
             while ((index = source.IndexOf(term, index, StringComparison.OrdinalIgnoreCase)) >= 0)

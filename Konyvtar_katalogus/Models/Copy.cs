@@ -13,8 +13,10 @@ namespace Konyvtar_katalogus.Models
         [Required]
         [MaxLength(5)]
         [RegularExpression(@"[1-9][1-9]-[1-9][1-9]")]
+        
         public string InventoryNumber { get; set; }
         [Required]
+        
         public bool isAvailable { get; set; }
 
         

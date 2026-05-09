@@ -22,6 +22,7 @@ namespace Konyvtar_katalogus.Services
             return _fineRepository.GetUnpaid();
         }
 
+        
         public bool PayFine(int fineId)
         {
             var fine = _fineRepository.GetById(fineId);

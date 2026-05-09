@@ -25,6 +25,7 @@ namespace Konyvtar_katalogus.Services
             _notificationQueueRepository = notificationQueueRepository;
         }
 
+        
         public bool CreateLoan(int readerId, int copyId)
         {
             var reader = _readerRepository.GetById(readerId);
@@ -49,7 +50,7 @@ namespace Konyvtar_katalogus.Services
             _loanRepository.SaveChanges();
             return true;
         }
-
+ 
         public bool ReturnLoan(int loanId)
         {
             var loan = _loanRepository.GetById(loanId);

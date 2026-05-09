@@ -17,7 +17,7 @@ namespace Konyvtar_katalogus.Models
         [Required]
         [MaxLength(13)]
         public string isbn { get; set; }
-        public ICollection<Copy> Copies { get; set; }
+        public ICollection<Copy>? Copies { get; set; }
 
     }
 }

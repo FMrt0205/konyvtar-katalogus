@@ -13,6 +13,8 @@ namespace Konyvtar_katalogus.Services
             _bookRepository = bookRepository;
         }
 
+        // import C:\Users\Felhasználó\Desktop\books_for_import_v2.csv
+
         public bool AddBook(string title, string author, string isbn)
         {
             if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(author) || string.IsNullOrWhiteSpace(isbn))

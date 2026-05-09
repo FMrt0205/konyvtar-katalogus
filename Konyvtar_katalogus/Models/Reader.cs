@@ -13,7 +13,7 @@ namespace Konyvtar_katalogus.Models
         [MaxLength(200)]
         public string? email { get; set; }
 
-        public ICollection<Loan> Loans { get; set; }
+        public ICollection<Loan> Loans { get; set; } = new List<Loan>();
 
     }
 }

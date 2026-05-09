@@ -13,7 +13,7 @@ namespace Konyvtar_katalogus.Services
             _copyRepository = copyRepository;
             _bookRepository = bookRepository;
         }
-
+        
         public bool AddCopy(int bookId, string inventoryNumber)
         {
             var book = _bookRepository.GetById(bookId);

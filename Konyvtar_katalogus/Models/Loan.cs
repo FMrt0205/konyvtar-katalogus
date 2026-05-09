@@ -11,10 +11,14 @@ namespace Konyvtar_katalogus.Models
         [Key]
         public int loanid { get; set; }
         [Required]
+        
         public DateTime loanDate { get; set; }
+        
         public DateTime returnDate { get; set; }
+        
         public int LoanPeriodDays { get; set; } = 14;
         [NotMapped]
+        
         public DateTime dueDate => loanDate.AddDays(LoanPeriodDays);
         public int copyid { get; set; }
         public Copy Copy { get; set; }
